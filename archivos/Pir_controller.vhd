@@ -4,6 +4,9 @@ use ieee.numeric_std.all;
 use work.pkg_system.all;
  
 entity pir_controller is
+	generic (
+        FILTER_CYCLES : positive := FILTER_CYCLES_HW
+    );
 
     port (
         clk       : in  std_logic;
@@ -19,3 +22,40 @@ architecture rtl of pir_controller is
     signal filtrada       : std_logic := '0';
     signal anterior       : std_logic := '0';
     signal pulso          : std_logic := '0';
+	 signal cont_filtro    : integer range 0 to FILTER_CYCLES - 1 := 0;
+
+	
+begin
+
+    p_sincronizacion : process (clk)
+    begin
+        if rising_edge(clk) then
+            if rst = '1' then
+                sync_1 <= '0';
+                sync_2 <= '0';
+            else
+                sync_1 <= pir_in;
+                sync_2 <= sync_1;
+            end if;
+        end if;
+    end process p_sincronizacion;
+	     p_filtrado : process (clk)
+    begin
+        if rising_edge(clk) then
+            if rst = '1' then
+                cont_filtro <= 0;
+                filtrada    <= '0';
+            else
+                if sync_2 = filtrada then
+                    cont_filtro <= 0;
+                else
+                    if cont_filtro = FILTER_CYCLES - 1 then
+                        filtrada    <= sync_2;
+                        cont_filtro <= 0;
+                    else
+                        cont_filtro <= cont_filtro + 1;
+                    end if;
+                end if;
+            end if;
+        end if;
+    end process p_filtrado;
