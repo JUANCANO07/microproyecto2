@@ -38,5 +38,15 @@ begin
                 estado_actual <= estado_siguiente;
             end if;
         end if;
-
+    end process p_registro_estados
+    p_transiciones : process (estado_actual, pir_pulse)
+    begin
+        estado_siguiente <= estado_actual;
+        case estado_actual is
+            when S0 =>
+                if pir_pulse = '1' then
+                    estado_siguiente <= S1;
+                else
+                    estado_siguiente <= S0;
+                end if;
  
