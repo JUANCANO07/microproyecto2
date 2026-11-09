@@ -104,3 +104,39 @@ begin
 ram_read_addr <= sw_s(3 downto 0) when sw_s(4) = '1' else last_addr;
     ram_addr_sel  <= ram_write_addr   when ram_we = '1'  else ram_read_addr;
     ram_rd_en     <= not ram_we;
+
+
+
+
+
+p_visualizacion : process (CLOCK_50)
+    begin
+        if rising_edge(CLOCK_50) then
+            if rst = '1' then
+                lectura_pend    <= '0';
+                vista_valida    <= '0';
+                dato_visualizar <= (others => '0');
+            else
+               lectura_pend <= ram_rd_en;
+                vista_valida <= vista_ahora;
+                if lectura_pend = '1' then
+                    if vista_valida = '1' then
+                        dato_visualizar <= ram_data_out;
+                    else
+                        dato_visualizar <= (others => '0');
+                    end if;
+                end if;
+            end if;
+        end if;
+    end process p_visualizacion;
+
+    HEX0 <= hex_to_7seg(dato_visualizar(3 downto 0));
+    HEX1 <= hex_to_7seg(dato_visualizar(7 downto 4));
+    HEX2 <= hex_to_7seg(rec_count(3 downto 0));
+    HEX3 <= hex_to_7seg("000" & rec_count(4));
+
+    LEDG(1 downto 0) <= estado;
+    LEDG(2)          <= lleno;
+    LEDG(3)          <= PIR_IN;
+
+end architecture rtl;
