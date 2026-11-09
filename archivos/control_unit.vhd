@@ -15,7 +15,7 @@ entity control_unit is
         rec_count : out std_logic_vector(ADDR_WIDTH downto 0); 
         full      : out std_logic;
         estado_o  : out std_logic_vector(1 downto 0)    
-    );
+    ); 
 end entity control_unit;architecture rtl of control_unit is
 
     type estado_t is (S0, S1, S2, S3);
@@ -25,5 +25,18 @@ end entity control_unit;architecture rtl of control_unit is
     signal ram_addr_r  
     signal last_addr_r 
     signal contador    : integer range 0 to 126;
+begin
+
+    lleno <= '1' when contador = MEM_DEPTH else '0';
+
+    p_registro_estados : process (clk)
+    begin
+        if rising_edge(clk) then
+            if rst = '1' then
+                estado_actual <= S0;
+            else
+                estado_actual <= estado_siguiente;
+            end if;
+        end if;
 
  
