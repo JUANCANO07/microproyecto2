@@ -32,3 +32,14 @@ architecture sim of tb_top_system is
         end loop;
         return -1;
     end function seg2int;
+begin
+
+    clk_gen : process
+    begin
+        while not fin loop
+            clk <= '0'; wait for T_CLK / 2;
+            clk <= '1'; wait for T_CLK / 2;
+        end loop;
+        wait;
+    end process clk_gen;
+
