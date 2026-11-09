@@ -114,7 +114,7 @@ begin
     last_addr <= last_addr_r;
     ram_we    <= ram_we_i;
     full      <= lleno;
-    rec_count <= std_logic_vector(unsigned(contador, ADDR_WIDTH + 1));
+    rec_count <= std_logic_vector(to_unsigned(contador, ADDR_WIDTH + 1));
 
     with estado_actual select
         estado_o <= "00" when S0,
