@@ -1,8 +1,13 @@
+-- control_unit.vhd
+-- FSM: S0 (Espera) -> S1 (Lee ROM) -> S2 (Escribe RAM) -> S3 (Actualiza) -> S0
+-- Nota: En S2 se habilita escritura y se actualizan punteros.
+-- Si llega a 16 registros, se bloquea la escritura.
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use work.pkg_system.all;
- 
+
 entity control_unit is
     port (
         clk       : in  std_logic;
@@ -36,8 +41,7 @@ begin
 
     lleno <= '1' when contador = MEM_DEPTH else '0';
 
--- inicio registro de estado
-    
+    -- Memoria de estado
     p_registro_estados : process (clk)
     begin
         if rising_edge(clk) then
@@ -49,8 +53,7 @@ begin
         end if;
     end process p_registro_estados;
 
-    -- inicio logica de transiciones
-    
+    -- Transiciones de la FSM
     p_transiciones : process (estado_actual, pir_pulse)
     begin
         estado_siguiente <= estado_actual;
@@ -69,6 +72,8 @@ begin
                 estado_siguiente <= S0;
         end case;
     end process p_transiciones;
+
+    -- Salidas: Escribe en RAM solo en S2 y si hay espacio
     p_salidas : process (estado_actual, lleno)
     begin
         ram_we_i <= '0';
@@ -82,6 +87,7 @@ begin
         end case;
     end process p_salidas;
 
+    -- Actualizacion de direcciones y contador
     p_direcciones : process (clk)
     begin
         if rising_edge(clk) then
@@ -102,6 +108,8 @@ begin
             end if;
         end if;
     end process p_direcciones;
+
+    -- Asignacion de puertos
     rom_addr  <= rom_addr_r;
     ram_addr  <= ram_addr_r;
     last_addr <= last_addr_r;
@@ -116,3 +124,4 @@ begin
                     "11" when S3;
 
 end architecture rtl;
+
