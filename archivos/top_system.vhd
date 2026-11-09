@@ -54,4 +54,33 @@ begin
             sw_s     <= sw_meta;
         end if;
     end process p_sync_entradas;
+  u_pir : entity work.pir_controller
+        generic map (FILTER_CYCLES => FILTER_CYCLES)
+        port map (
+            clk       => CLOCK_50,
+            rst       => rst,
+            pir_in    => PIR_IN,
+            pir_pulse => pir_pulse
+        );
 
+    u_fsm : entity work.control_unit
+        port map (
+            clk       => CLOCK_50,
+            rst       => rst,
+            pir_pulse => pir_pulse,
+            rom_addr  => rom_addr,
+            ram_addr  => ram_write_addr,
+            last_addr => last_addr,
+            ram_we    => ram_we,
+            rec_count => rec_count,
+            full      => lleno,
+            estado_o  => estado
+        );
+
+    u_rom : entity work.rom_sync
+        generic map (DATA_WIDTH => DATA_WIDTH, ADDR_WIDTH => ADDR_WIDTH)
+        port map (
+            clk      => CLOCK_50,
+            addr     => rom_addr,
+            data_out => rom_data
+        );
