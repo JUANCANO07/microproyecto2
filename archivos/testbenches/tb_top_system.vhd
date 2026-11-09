@@ -93,6 +93,16 @@ begin
                 report "FALLO : " & msg severity error;
             end if;
         end procedure;
+        procedure esperar_estado (destino : integer; maxc : natural) is
+            variable k : natural := 0;
+        begin
+            while estado /= destino and k < maxc loop
+                wait until falling_edge(clk);
+                k := k + 1;
+            end loop;
+            chequear(estado = destino,
+                     "FSM alcanza estado S" & integer'image(destino));
+        end procedure;
 
 
 
