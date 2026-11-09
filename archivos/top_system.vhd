@@ -41,4 +41,17 @@ architecture rtl of top_system is
     signal ram_data_out   : tipo_dato;
     signal ram_we         : std_logic;
     signal ram_rd_en      : std_logic;
+begin
+
+    -- Reset y switches: sincronizacion de 2 etapas
+
+  : process (CLOCK_50)
+    begin
+        if rising_edge(CLOCK_50) then
+            rst_meta <= not KEY0;
+            rst      <= rst_meta;
+            sw_meta  <= SW;
+            sw_s     <= sw_meta;
+        end if;
+    end process p_sync_entradas;
 
