@@ -99,5 +99,8 @@ begin
             data_in  => rom_data,
             data_out => ram_data_out
         );
+
+
 ram_read_addr <= sw_s(3 downto 0) when sw_s(4) = '1' else last_addr;
-    ram_addr_sel  <= ram_write_addr   when ram_we = '1' 
+    ram_addr_sel  <= ram_write_addr   when ram_we = '1'  else ram_read_addr;
+    ram_rd_en     <= not ram_we;
