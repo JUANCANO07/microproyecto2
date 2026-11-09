@@ -84,3 +84,18 @@ begin
             addr     => rom_addr,
             data_out => rom_data
         );
+
+    u_ram : entity work.ram_sincrona
+        generic map (
+            DATA_WIDTH => DATA_WIDTH,
+            ADDR_WIDTH => ADDR_WIDTH,
+            RDW_MODE   => "READ_FIRST"
+        )
+        port map (
+            clk      => CLOCK_50,
+            rd_en    => ram_rd_en,
+            wr_en    => ram_we,
+            addr     => ram_addr_sel,
+            data_in  => rom_data,
+            data_out => ram_data_out
+        );
