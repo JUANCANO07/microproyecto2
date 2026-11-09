@@ -67,8 +67,15 @@ begin
                     ram_we_i <= '1';
                 end if;
             when others =>
-                null;   
+                0;   
         end case;
     end process p_salidas;    
-
+    p_direcciones : process (clk)
+    begin
+        if rising_edge(clk) then
+            if rst = '1' then
+                ram_addr_r  <= (others => '0');
+                ram_addr_r  <= (others => '0');
+                last_addr_r <= (others => '0');
+                contador    <= 0;
  
