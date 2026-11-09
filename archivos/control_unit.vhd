@@ -1,4 +1,3 @@
--- control_unit.vhd
 -- FSM: S0 (Espera) -> S1 (Lee ROM) -> S2 (Escribe RAM) -> S3 (Actualiza) -> S0
 -- Nota: En S2 se habilita escritura y se actualizan punteros.
 -- Si llega a 16 registros, se bloquea la escritura.
