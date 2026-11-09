@@ -57,5 +57,18 @@ begin
                 estado_siguiente <= S0;
         end case;
     end process p_transiciones;
+         
+    p_salidas : process (estado_actual, lleno)
+    begin
+        ram_we_i <= '0';
+        case estado_actual is
+            when S2 =>
+                if lleno = '0' then
+                    ram_we_i <= '1';
+                end if;
+            when others =>
+                null;   
+        end case;
+    end process p_salidas;    
 
  
