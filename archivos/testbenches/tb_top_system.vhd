@@ -68,4 +68,13 @@ estimulos : process
 
         procedure chequear (cond : boolean; msg : string) is
         begin
+            if cond then
+                report "OK    : " & msg severity note;
+            else
+                errores := errores + 1;
+                report "FALLO : " & msg severity error;
+            end if;
+        end procedure;
+
+
 
