@@ -78,4 +78,19 @@ begin
                 ram_addr_r  <= (others => '0');
                 last_addr_r <= (others => '0');
                 contador    <= 0;
+    rom_addr  <= rom_addr_r;
+    ram_addr  <= ram_addr_r;
+    last_addr <= last_addr_r;
+    ram_we    <= ram_we_i;
+    full      <= lleno;
+    rec_count <= std_logic_vector(unsigned(contador, ADDR_WIDTH + 1));
+
+    with estado_actual select
+        estado_o <= "00" when S0,
+                    "01" when S1,
+                    "10" when S2,
+                    "11" when S3;
+
+end architecture rtl;
+
  
