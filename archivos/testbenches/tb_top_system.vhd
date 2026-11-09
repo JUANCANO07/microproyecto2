@@ -103,6 +103,26 @@ begin
             chequear(estado = destino,
                      "FSM alcanza estado S" & integer'image(destino));
         end procedure;
+        procedure detectar (cnt_esp : integer; dato_esp : integer) is
+        begin
+            pir <= '1';
+            esperar_estado(1, 40);
+            ciclos(1); chequear(estado = 2, "Transicion S1 -> S2");
+            ciclos(1); chequear(estado = 3, "Transicion S2 -> S3");
+            ciclos(1); chequear(estado = 0, "Transicion S3 -> S0");
+            ciclos(6);
+            chequear(cuenta = cnt_esp,
+                     "Contador de registros = " & integer'image(cnt_esp));
+            chequear(dato_vis = dato_esp,
+                     "Ultimo dato escrito = " & integer'image(dato_esp));
+        end procedure;
+
+        procedure soltar_pir is
+        begin
+            pir <= '0';
+            ciclos(20);        
+        end procedure;
+
 
 
 
