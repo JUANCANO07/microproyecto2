@@ -21,5 +21,9 @@ end entity control_unit;architecture rtl of control_unit is
     type estado_t is (S0, S1, S2, S3);
     signal estado_actual    : estado_t := S0;
     signal estado_siguiente : estado_t;
+    signal rom_addr_r  
+    signal ram_addr_r  
+    signal last_addr_r 
+    signal contador    : integer range 0 to 126;
 
  
