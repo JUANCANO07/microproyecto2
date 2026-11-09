@@ -42,4 +42,30 @@ begin
         end loop;
         wait;
     end process clk_gen;
+estimulos : process
+
+        impure function estado return integer is
+        begin
+            return to_integer(unsigned(ledg(1 downto 0)));
+        end function;
+
+        impure function cuenta return integer is
+        begin
+            return 16 * seg2int(hex3) + seg2int(hex2);
+        end function;
+
+        impure function dato_vis return integer is
+        begin
+            return 16 * seg2int(hex1) + seg2int(hex0);
+        end function;
+
+        procedure ciclos (n : natural) is
+        begin
+            for i in 1 to n loop
+                wait until falling_edge(clk);
+            end loop;
+        end procedure;
+
+        procedure chequear (cond : boolean; msg : string) is
+        begin
 
