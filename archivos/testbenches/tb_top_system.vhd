@@ -23,3 +23,12 @@ architecture sim of tb_top_system is
     constant ROM_ESPERADA : tabla_t :=
         (16#AA#, 16#55#, 16#F0#, 16#0F#, 16#FF#, 16#00#,
          0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    function seg2int (s : std_logic_vector(7 downto 0)) return integer is
+    begin
+        for i in 0 to 15 loop
+            if s = hex_to_7seg(std_logic_vector(to_unsigned(i, 4))) then
+                return i;
+            end if;
+        end loop;
+        return -1;
+    end function seg2int;
