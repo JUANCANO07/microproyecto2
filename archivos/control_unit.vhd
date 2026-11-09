@@ -49,4 +49,13 @@ begin
                 else
                     estado_siguiente <= S0;
                 end if;
+            when S1 =>
+                estado_siguiente <= S2;
+            when S2 =>
+                estado_siguiente <= S3;
+            when S3 =>
+                estado_siguiente <= S0;
+        end case;
+    end process p_transiciones;
+
  
