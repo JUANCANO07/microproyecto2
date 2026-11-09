@@ -6,29 +6,38 @@ use work.pkg_system.all;
 entity control_unit is
     port (
         clk       : in  std_logic;
-        rst       : in  std_logic;                       
+        rst       : in  std_logic;                       -- activo en alto
         pir_pulse : in  std_logic;
         rom_addr  : out tipo_direccion;
-        ram_addr  : out tipo_direccion;                  
-        last_addr : out tipo_direccion;                  
+        ram_addr  : out tipo_direccion;                  -- direccion de escritura
+        last_addr : out tipo_direccion;                  -- ultimo registro valido
         ram_we    : out std_logic;
-        rec_count : out std_logic_vector(ADDR_WIDTH downto 0); 
+        rec_count : out std_logic_vector(ADDR_WIDTH downto 0);  -- 0..16
         full      : out std_logic;
-        estado_o  : out std_logic_vector(1 downto 0)    
-    ); 
-end entity control_unit;architecture rtl of control_unit is
+        estado_o  : out std_logic_vector(1 downto 0)     -- S0=00 S1=01 S2=10 S3=11
+    );
+end entity control_unit;
+
+architecture rtl of control_unit is
 
     type estado_t is (S0, S1, S2, S3);
     signal estado_actual    : estado_t := S0;
     signal estado_siguiente : estado_t;
-    signal rom_addr_r  
-    signal ram_addr_r  
-    signal last_addr_r 
-    signal contador    : integer range 0 to 126;
+
+    signal rom_addr_r  : tipo_direccion := (others => '0');
+    signal ram_addr_r  : tipo_direccion := (others => '0');
+    signal last_addr_r : tipo_direccion := (others => '0');
+    signal contador    : integer range 0 to MEM_DEPTH := 0;
+
+    signal lleno    : std_logic;
+    signal ram_we_i : std_logic;
+
 begin
 
     lleno <= '1' when contador = MEM_DEPTH else '0';
 
+-- inicio registro de estado
+    
     p_registro_estados : process (clk)
     begin
         if rising_edge(clk) then
@@ -38,7 +47,10 @@ begin
                 estado_actual <= estado_siguiente;
             end if;
         end if;
-    end process p_registro_estados
+    end process p_registro_estados;
+
+    -- inicio logica de transiciones
+    
     p_transiciones : process (estado_actual, pir_pulse)
     begin
         estado_siguiente <= estado_actual;
@@ -57,7 +69,6 @@ begin
                 estado_siguiente <= S0;
         end case;
     end process p_transiciones;
-         
     p_salidas : process (estado_actual, lleno)
     begin
         ram_we_i <= '0';
@@ -67,17 +78,30 @@ begin
                     ram_we_i <= '1';
                 end if;
             when others =>
-                0;   
+                null;   -- S0, S1, S3: sin escritura
         end case;
-    end process p_salidas;    
+    end process p_salidas;
+
     p_direcciones : process (clk)
     begin
         if rising_edge(clk) then
             if rst = '1' then
-                ram_addr_r  <= (others => '0');
+                rom_addr_r  <= (others => '0');
                 ram_addr_r  <= (others => '0');
                 last_addr_r <= (others => '0');
                 contador    <= 0;
+            else
+                if ram_we_i = '1' then
+                    last_addr_r <= ram_addr_r;
+                    contador    <= contador + 1;
+                    if contador < MEM_DEPTH - 1 then
+                        rom_addr_r <= std_logic_vector(unsigned(rom_addr_r) + 1);
+                        ram_addr_r <= std_logic_vector(unsigned(ram_addr_r) + 1);
+                    end if;
+                end if;
+            end if;
+        end if;
+    end process p_direcciones;
     rom_addr  <= rom_addr_r;
     ram_addr  <= ram_addr_r;
     last_addr <= last_addr_r;
@@ -92,5 +116,3 @@ begin
                     "11" when S3;
 
 end architecture rtl;
-
- 
