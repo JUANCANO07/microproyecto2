@@ -16,4 +16,10 @@ entity control_unit is
         full      : out std_logic;
         estado_o  : out std_logic_vector(1 downto 0)    
     );
-end entity control_unit;
+end entity control_unit;architecture rtl of control_unit is
+
+    type estado_t is (S0, S1, S2, S3);
+    signal estado_actual    : estado_t := S0;
+    signal estado_siguiente : estado_t;
+
+ 
