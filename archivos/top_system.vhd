@@ -1,4 +1,3 @@
-
 -- Top-Level: Integracion de controlador PIR, Unidad de Control (FSM) y memorias.
 library ieee;
 use ieee.std_logic_1164.all;
@@ -25,6 +24,8 @@ end entity top_system;
 architecture rtl of top_system is
 
     -- Sincronizadores para entradas asincronas
+    -- Se usan dos registros en cascada para evitar metaestabilidad al cruzar
+    -- señales del mundo exterior (botones/switches) al dominio del reloj interno.
     signal rst_meta : std_logic := '1';
     signal rst      : std_logic := '1';
 
@@ -60,6 +61,7 @@ begin
     p_sync_entradas : process (CLOCK_50)
     begin
         if rising_edge(CLOCK_50) then
+            -- Se invierte KEY0 porque los botones de la Cyclone III son pull-up
             rst_meta <= not KEY0;
             rst      <= rst_meta;
             sw_meta  <= SW;
@@ -68,6 +70,9 @@ begin
     end process p_sync_entradas;
 
     -- Instanciacion de modulos
+    
+    -- u_pir: Acondiciona la señal del sensor, filtrando ruido y generando
+    -- un pulso síncrono de un solo ciclo de reloj para la FSM.
     u_pir : entity work.pir_controller
         generic map (FILTER_CYCLES => FILTER_CYCLES)
         port map (
@@ -99,6 +104,8 @@ begin
             data_out => rom_data
         );
 
+    -- Instancia de memoria RAM configurada en modo "READ_FIRST" para
+    -- evitar conflictos de simulación si se lee y escribe la misma dirección.
     u_ram : entity work.ram_sincrona
         generic map (
             DATA_WIDTH => DATA_WIDTH,
@@ -115,7 +122,8 @@ begin
         );
 
     -- Multiplexor de direccionamiento de RAM
-    -- Prioridad estricta al ciclo de escritura FSM)
+    -- Prioridad estricta al ciclo de escritura de la FSM. 
+    -- Si la FSM no está escribiendo (ram_we='0'), el bus se cede para la lectura.
     ram_read_addr <= sw_s(3 downto 0) when sw_s(4) = '1' else last_addr;
     ram_addr_sel  <= ram_write_addr   when ram_we = '1'  else ram_read_addr;
     ram_rd_en     <= not ram_we;
@@ -125,7 +133,9 @@ begin
                             to_integer(unsigned(rec_count)) else '0';
 
     -- Pipeline de visualizacion
-    -- Alinea los datos capturados con la latencia de lectura de la RAM (1 ciclo)
+    -- Alinea los datos capturados con la latencia de lectura de la RAM (1 ciclo).
+    -- La memoria síncrona entrega el dato en el flanco siguiente, por ende, 
+    -- el visualizador debe esperar ese ciclo (lectura_pend) para tomar el valor.
     p_visualizacion : process (CLOCK_50)
     begin
         if rising_edge(CLOCK_50) then
@@ -136,11 +146,13 @@ begin
             else
                 lectura_pend <= ram_rd_en;
                 vista_valida <= vista_ahora;
-                
+
                 if lectura_pend = '1' then
                     if vista_valida = '1' then
                         dato_visualizar <= ram_data_out;
                     else
+                        -- Muestra 0s si se intenta leer una dirección donde la 
+                        -- FSM aún no ha escrito nada.
                         dato_visualizar <= (others => '0');
                     end if;
                 end if;
@@ -149,6 +161,8 @@ begin
     end process p_visualizacion;
 
     -- Asignacion de displays 7 segmentos
+    -- Se utiliza una función (hex_to_7seg) presumiblemente definida en pkg_system
+    -- para instanciar decodificadores BCD internamente.
     HEX0 <= hex_to_7seg(dato_visualizar(3 downto 0));
     HEX1 <= hex_to_7seg(dato_visualizar(7 downto 4));
     HEX2 <= hex_to_7seg(rec_count(3 downto 0));
@@ -160,3 +174,4 @@ begin
     LEDG(3)          <= PIR_IN;
 
 end architecture rtl;
+
