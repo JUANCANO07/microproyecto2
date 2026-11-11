@@ -1,4 +1,18 @@
 -- Top-Level: Integracion de controlador PIR, Unidad de Control (FSM) y memorias.
+-- Entradas:
+-- CLOCK_50 : Reloj principal del sistema de 50 MHz.
+-- KEY0     : Botón de reinicio del sistema, activo en bajo.
+-- PIR_IN   : Señal de entrada del sensor PIR para detectar movimiento.
+-- SW(4)    : Habilita la selección manual de la dirección de lectura de la RAM.
+-- SW(3:0)  : Selecciona la dirección de memoria RAM que se desea leer.
+-- Salidas:
+-- HEX0 : Muestra los 4 bits menos significativos del dato leído de la RAM.
+-- HEX1 : Muestra los 4 bits más significativos del dato leído de la RAM.
+-- HEX2 : Muestra los 4 bits menos significativos del contador de registros.
+-- HEX3 : Muestra el bit más significativo del contador de registros.
+-- LEDG(1:0) : Indican el estado actual de la máquina de estados FSM.
+-- LEDG(2)   : Indica si la memoria RAM está llena.
+-- LEDG(3)   : Indica el estado actual de la señal del sensor PIR.
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
@@ -12,7 +26,6 @@ entity top_system is
         CLOCK_50 : in  std_logic;
         KEY0     : in  std_logic;                       -- Reset (activo en bajo)
         PIR_IN   : in  std_logic;
-        SW       : in  std_logic_vector(4 downto 0);
         HEX0     : out std_logic_vector(6 downto 0);
         HEX1     : out std_logic_vector(6 downto 0);
         HEX2     : out std_logic_vector(6 downto 0);
@@ -64,7 +77,6 @@ begin
             -- Se invierte KEY0 porque los botones de la Cyclone III son pull-up
             rst_meta <= not KEY0;
             rst      <= rst_meta;
-            sw_meta  <= SW;
             sw_s     <= sw_meta;
         end if;
     end process p_sync_entradas;
@@ -174,4 +186,3 @@ begin
     LEDG(3)          <= PIR_IN;
 
 end architecture rtl;
-
