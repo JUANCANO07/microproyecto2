@@ -33,10 +33,6 @@ begin
             if rst = '1' then
                 sync_1 <= '0'; -- Primera etapa de sincronización de la señal de entrada.
                 sync_2 <= '0'; -- Segunda etapa de sincronización para reducir posibles problemas de metastabilidad.
-            else
-                sync_1 <= pir_in;
-                sync_2 <= sync_1;
-            end if;
         end if;
     end process p_sincronizacion;
 	     p_filtrado : process (clk)
