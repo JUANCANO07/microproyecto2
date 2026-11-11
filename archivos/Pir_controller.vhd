@@ -1,3 +1,10 @@
+-- Entradas:
+-- clk       : Señal de reloj que sincroniza el funcionamiento del controlador PIR.
+-- rst       : Señal de reinicio del controlador, activa en alto.
+-- pir_in    : Señal proveniente del sensor PIR que indica la detección de movimiento.
+-- Salidas:
+-- pir_pulse : Genera un pulso de un ciclo de reloj cuando se detecta un flanco de subida válido en la señal filtrada del sensor PIR.
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
@@ -33,6 +40,10 @@ begin
             if rst = '1' then
                 sync_1 <= '0'; -- Primera etapa de sincronización de la señal de entrada.
                 sync_2 <= '0'; -- Segunda etapa de sincronización para reducir posibles problemas de metastabilidad.
+            else
+                sync_1 <= pir_in;
+                sync_2 <= sync_1;
+            end if;
         end if;
     end process p_sincronizacion;
 	     p_filtrado : process (clk)
