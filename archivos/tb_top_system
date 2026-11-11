@@ -8,29 +8,29 @@ end entity tb_top_system;
 
 architecture sim of tb_top_system is
 
-    constant T_CLK    : time     := 20 ns;         
-    constant N_FILTRO : positive := 4;
+    constant T_CLK    : time     := 20 ns; -- Establece el periodo de la señal de reloj.         
+    constant N_FILTRO : positive := 4; -- Define los ciclos necesarios para validar una señal del sensor PIR.
 
     signal clk  : std_logic := '0';
-    signal key0 : std_logic := '0';              
-    signal pir  : std_logic := '1';                
-    signal hex0, hex1, hex2, hex3 : std_logic_vector(6 downto 0);
-    signal ledg : std_logic_vector(2 downto 0);
-    signal fin  : boolean := false;
+    signal key0 : std_logic := '0';  -- Señal utilizada para reiniciar el sistema.            
+    signal pir  : std_logic := '1';  -- Entrada del sensor PIR, inicialmente en estado alto.              
+    signal hex0, hex1, hex2, hex3 : std_logic_vector(6 downto 0); -- Salidas que controlan los cuatro displays de 7 segmentos.
+    signal ledg : std_logic_vector(2 downto 0); -- Salidas de los LED indicadores del sistema.
+    signal fin  : boolean := false; -- Controla la finalización del generador de reloj.
 
-    type tabla_t is array (0 to 15) of natural;
+    type tabla_t is array (0 to 15) of natural; -- Define una tabla con 16 posiciones para almacenar valores esperados.
     constant ROM_ESPERADA : tabla_t :=
         (16#AA#, 16#55#, 16#F0#, 16#0F#, 16#FF#, 16#00#,
-         0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0);  -- Datos que se utilizarán para comprobar las lecturas de la memoria ROM.
 
     function seg2int (s : std_logic_vector(6 downto 0)) return integer is
     begin
         for i in 0 to 15 loop
-            if s = hex_to_7seg(std_logic_vector(to_unsigned(i, 4))) then
-                return i;
+            if s = hex_to_7seg(std_logic_vector(to_unsigned(i, 4))) then -- Busca qué valor hexadecimal corresponde a la combinación recibida.
+                return i; -- Entrega el número identificado en el display.
             end if;
         end loop;
-        return -1;
+        return -1; -- Retorna -1 cuando no encuentra una representación válida.
     end function seg2int;
 
 begin
@@ -39,12 +39,12 @@ begin
     begin
         while not fin loop
             clk <= '0'; wait for T_CLK / 2;
-            clk <= '1'; wait for T_CLK / 2;
+            clk <= '1'; wait for T_CLK / 2; -- Alterna entre alto y bajo para producir el reloj de simulación.
         end loop;
         wait;
     end process clk_gen;
 
-    uut : entity work.top_system
+    uut : entity work.top_system -- Conecta el módulo principal que contiene el sistema que se desea verificar.
         generic map (FILTER_CYCLES => N_FILTRO)
         port map (
             CLOCK_50 => clk, KEY0 => key0, PIR_IN => pir,
@@ -54,31 +54,31 @@ begin
 
     estimulos : process
 
-        variable errores : natural := 0;
+        variable errores : natural := 0; -- Lleva el registro del número de comprobaciones fallidas.
 
-        impure function estado return integer is
+        impure function estado return integer is  -- Interpreta los dos primeros LED para conocer el estado de la FSM.
         begin
             return to_integer(unsigned(ledg(1 downto 0)));
         end function;
 
-        impure function cuenta return integer is
+        impure function cuenta return integer is -- Obtiene el valor numérico del contador mostrado en HEX3 y HEX2.
         begin
             return 16 * seg2int(hex3) + seg2int(hex2);
         end function;
 
-        impure function dato_vis return integer is
+        impure function dato_vis return integer is -- Convierte las salidas HEX1 y HEX0 en el dato hexadecimal correspondiente.
         begin
             return 16 * seg2int(hex1) + seg2int(hex0);
         end function;
 
-        procedure ciclos (n : natural) is
+        procedure ciclos (n : natural) is -- Permite avanzar la simulación una cantidad determinada de ciclos.
         begin
             for i in 1 to n loop
                 wait until falling_edge(clk);
             end loop;
         end procedure;
 
-        procedure chequear (cond : boolean; msg : string) is
+        procedure chequear (cond : boolean; msg : string) is -- Evalúa cada resultado y muestra un mensaje indicando si la comprobación fue exitosa.
         begin
             if cond then
                 report "OK    : " & msg severity note;
@@ -88,7 +88,7 @@ begin
             end if;
         end procedure;
 
-        procedure esperar_estado (destino : integer; maxc : natural) is
+        procedure esperar_estado (destino : integer; maxc : natural) is -- Espera la llegada de la FSM al estado solicitado, con un límite de ciclos.
             variable k : natural := 0;
         begin
             while estado /= destino and k < maxc loop
@@ -99,7 +99,7 @@ begin
                      "FSM alcanza estado S" & integer'image(destino));
         end procedure;
 
-        procedure detectar (cnt_esp : integer; dato_esp : integer) is
+        procedure detectar (cnt_esp : integer; dato_esp : integer) is -- Simula una detección del PIR y verifica el recorrido de estados, el contador y el dato obtenido.
         begin
             pir <= '1';
             esperar_estado(1, 40);
@@ -113,13 +113,13 @@ begin
                      "ultimo dato = " & integer'image(dato_esp));
         end procedure;
 
-        procedure soltar_pir is
+        procedure soltar_pir is -- Coloca el sensor en nivel bajo para permitir que posteriormente se detecte un nuevo flanco de subida.
         begin
             pir <= '0';
             ciclos(20);       
         end procedure;
 
-        procedure presionar_reset is
+        procedure presionar_reset is -- Activa el reset durante seis ciclos de reloj y después lo libera.
         begin
             key0 <= '0'; ciclos(6); key0 <= '1';
         end procedure;
@@ -161,7 +161,7 @@ begin
 
         report "--- PRUEBA 6 ---";
         soltar_pir;
-        pir <= '1'; ciclos(1); pir <= '0';
+        pir <= '1'; ciclos(1); pir <= '0'; -- Introduce una variación de un ciclo para comprobar que el filtro rechaza señales demasiado cortas.
         ciclos(40);
         chequear(cuenta = 6 and estado = 0, "ruido de 1 ciclo no genera evento");
 
@@ -192,18 +192,18 @@ begin
         chequear(cuenta = 0 and dato_vis = 0, "reset con PIR en bajo: 0000");
         for k in 0 to 15 loop
             soltar_pir;
-            detectar(k + 1, ROM_ESPERADA(k));
+            detectar(k + 1, ROM_ESPERADA(k)); -- Comprueba consecutivamente los datos de las 16 posiciones de la ROM.
         end loop;
         chequear(ledg(2) = '1', "RAM llena (LED)");
         for k in 1 to 3 loop
             soltar_pir;
-            detectar(16, 0);                  
+            detectar(16, 0); -- Verifica que el sistema no intente escribir en posiciones adicionales cuando la RAM ya está llena.                  
         end loop;
         chequear(ledg(2) = '1', "RAM sigue llena, sin direcciones invalidas");
 
         report "FIN DE SIMULACION. Errores = " & integer'image(errores);
-        assert errores = 0 report "HAY ERRORES" severity failure;
-        fin <= true;
+        assert errores = 0 report "HAY ERRORES" severity failure; -- Genera un error de simulación si alguna de las comprobaciones no se cumple.
+        fin <= true; -- Activa la señal que detiene el generador de reloj.
         wait;
     end process estimulos;
 
