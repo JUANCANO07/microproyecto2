@@ -1,6 +1,8 @@
--- FSM: S0 (Espera) -> S1 (Lee ROM) -> S2 (Escribe RAM) -> S3 (Actualiza) -> S0
--- Nota: En S2 se habilita escritura y se actualizan punteros.
--- Si llega a 16 registros, se bloquea la escritura.
+-- Unidad de Control: Máquina de estados finitos (FSM) de Moore para coordinar 
+-- la lectura de la ROM y la escritura en la RAM tras la llegada de un pulso del sensor PIR.
+-- FSM: S0 (Espera) -> S1 (Lee ROM) -> S2 (Escribe RAM) -> S3 (Actualiza punteros) -> S0
+-- Nota: En S2 se habilita la escritura y se actualizan punteros.
+-- Si la memoria se llena (MEM_DEPTH), la bandera 'lleno' se activa y bloquea la escritura.
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -24,10 +26,12 @@ end entity control_unit;
 
 architecture rtl of control_unit is
 
+    -- Tipo enumerado para definir los 4 estados de la FSM de Moore
     type estado_t is (S0, S1, S2, S3);
     signal estado_actual    : estado_t := S0;
     signal estado_siguiente : estado_t;
 
+    -- Registros internos para almacenar y mantener las direcciones y el contador
     signal rom_addr_r  : tipo_direccion := (others => '0');
     signal ram_addr_r  : tipo_direccion := (others => '0');
     signal last_addr_r : tipo_direccion := (others => '0');
@@ -38,9 +42,11 @@ architecture rtl of control_unit is
 
 begin
 
+    -- Comparador combinacional que se activa si el contador alcanza el límite MEM_DEPTH
     lleno <= '1' when contador = MEM_DEPTH else '0';
 
-    -- Memoria de estado
+    -- Registro de estado síncrono
+    -- rising_edge(clk) evalúa la transición del flanco de subida del reloj (0 a 1)
     p_registro_estados : process (clk)
     begin
         if rising_edge(clk) then
@@ -52,7 +58,8 @@ begin
         end if;
     end process p_registro_estados;
 
-    -- Transiciones de la FSM
+    -- Lógica combinacional para determinar las transiciones del siguiente estado
+    -- Asignar estado_siguiente por defecto al inicio previene la inferencia no deseada de latches
     p_transiciones : process (estado_actual, pir_pulse)
     begin
         estado_siguiente <= estado_actual;
@@ -72,7 +79,8 @@ begin
         end case;
     end process p_transiciones;
 
-    -- Salidas: Escribe en RAM solo en S2 y si hay espacio
+    -- Lógica de salidas (Moore: depende únicamente de estado_actual)
+    -- Activa la señal interna de escritura (ram_we_i) en S2 si la RAM aún no está llena
     p_salidas : process (estado_actual, lleno)
     begin
         ram_we_i <= '0';
@@ -86,7 +94,7 @@ begin
         end case;
     end process p_salidas;
 
-    -- Actualizacion de direcciones y contador
+    -- Proceso secuencial para actualización de punteros de dirección y del contador de eventos
     p_direcciones : process (clk)
     begin
         if rising_edge(clk) then
@@ -100,6 +108,8 @@ begin
                     last_addr_r <= ram_addr_r;
                     contador    <= contador + 1;
                     if contador < MEM_DEPTH - 1 then
+                        -- unsigned(vector) interpreta los bits del vector como número sin signo para sumar 1
+                        -- std_logic_vector(...) vuelve a castear el resultado al tipo de salida
                         rom_addr_r <= std_logic_vector(unsigned(rom_addr_r) + 1);
                         ram_addr_r <= std_logic_vector(unsigned(ram_addr_r) + 1);
                     end if;
@@ -108,14 +118,18 @@ begin
         end if;
     end process p_direcciones;
 
-    -- Asignacion de puertos
+    -- Asignación de salidas físicas y banderas internas
     rom_addr  <= rom_addr_r;
     ram_addr  <= ram_addr_r;
     last_addr <= last_addr_r;
     ram_we    <= ram_we_i;
     full      <= lleno;
+
+    -- to_unsigned(contador, tamaño) convierte el número entero 'contador' a un tipo unsigned de (ADDR_WIDTH + 1) bits,
+    -- y std_logic_vector(...) lo convierte al tipo estándar del puerto rec_count
     rec_count <= std_logic_vector(to_unsigned(contador, ADDR_WIDTH + 1));
 
+    -- Multiplexor/decodificador de estado a 2 bits para monitoreo en LEDs o testbench
     with estado_actual select
         estado_o <= "00" when S0,
                     "01" when S1,
@@ -123,4 +137,3 @@ begin
                     "11" when S3;
 
 end architecture rtl;
-
